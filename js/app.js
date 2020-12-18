@@ -413,3 +413,165 @@ Make sure your H1 element displays the value of your counter piece of state!
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //When do we search?
 	//Where are we going to write the code to make the search request?
+
+	//2 possible options:
+		//1 - write code in onChange event handler:
+			//User Types in input
+			//onChange even handler called
+			//We take value from input and make api request
+			//... Get response ...
+			//Update 'results' piece of state
+			//Component rerenders, we show list of results
+
+		//2 - 
+			//User types in input
+			//onChange event handler called
+			//update 'term' piece of state
+			//Component rerenders (b/c of term update)
+			//***We add code to detect that 'term' has changed!***
+			//Make request to API ...
+			//Get response
+			//Update 'results' piece of state
+			//Component rerenders and shows list of results
+
+		//Big difference: 
+			//1 - whether we want to make the request immediately ( in onChange handler)
+			//2 - only update piece of state and only make request when we detect that 'term' has changed
+
+		//Option 1:
+			//Pro: Search instantly when onChange even triggers, simply and easy to understand
+			//Con: Tightly couples 'onChange' event with search
+				//need specific code that will trigger search when state is updated, not reusable
+				//Can only do a search when onChange event handler fires
+
+		//Option 2:
+			//Search when 'term' piece of state changes
+			//Can easily trigger a search when other parameters change!
+				//If there was another piece of info that user enters we could easily trigger another search
+			//Easier to extract code out into a more reusable function!
+				//If we wanted to add options for search it would be very easy to add that functionality
+
+	//Using option 2, we're going to add code to detect whether or not 'term' has changed when app rerenders
+
+	// useEffect() hooks allows us to do this:
+		//detects that our component is rerendering and detects a change
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//The useEffect Hook
+
+	//Allows functional components ot use SOMETHING LIKE lifecycle methods
+	//We configure the hook to run some code automatically in one of three scenarios:
+		//1 - When the component is rendered for the FIRST TIME ONLY
+		//2 - When the component is rendered for the FIRST TIME AND WHENEVER IT RERENDERS
+		//3 - When the component is rendered for the FIRST TIME AND WHENEVER IT RERENDERS AND SOME
+			//PIECE OF DATA HAS CHANGED!
+
+	//WE SHOULD NEVER SEE SOMETHING LIKE componentDidMount(){} INSIDE A FUNCTIONAL COMPONENT!
+
+	//Now let's write some code to figure out how to employ useEffect in 1 of these 3 scenarios:
+
+	//useEffect()
+		//1st arguement is ALWAYS A FUNCTION - something that we want to do???
+			//afs easier to read rather than 'function' notation
+
+		//2nd argument: controls when our code gets executed (1/3 scenarios)
+			//1) [] 		==> run at initial render
+			//2) ...nothing ==> run at initial render ==> run after every rerender
+			//3) [data] 	==> run at initial render ==> run after every rerender ==> run after after every
+//																						rerender IF data has
+//																						changed since last
+//																						render
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Testing Execution (of useEffect)
+
+	//in Search.js:
+		const Search = () => {
+		const [term, setTerm] = useState('');
+
+		console.log('I RUN WITH EVERY RENDER');
+	//1
+		useEffect(() => {
+			console.log('I ONLY RUN ONCE');
+		}, [])};
+		//this proves to use that the useEffect function runs only once
+	//2
+		useEffect(() => {
+			console.log('I RUN AT EVERY RENDER AND AT INITIAL RENDER');
+		});
+		//proves that useEffect runs at every render
+	//3
+		useEffect(() => {
+			console.log('I RUN AT INITIAL RENDER AND WHENEVER DATA HAS CHANGED');
+		}, [term]);
+		//same effect as above, b/c we're changing the data each time we type in the input!
+
+	//You will see either scenarios of the [], or [data] most often
+
+	//The array in the 2ng arg of use effect can have more than one piece of state in it!
+		//The component will rerender whenever either piece is changed, not both
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Quiz: 3/3 GREAT JERB!!
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Async code in useEffect
+	//What is the goal of this widget?
+		//We want to do a search of the wikipedia api everytime the user presses a key
+			//How do we do this?
+
+			//useEffect:
+			useEffect(() => {
+				//make api request here w/ axios
+			}, [term]);//every time 'term' changes, run the first argument
+
+	//useEffect rule:
+		//we cannot mark a the arrow function that we're passing in as async
+		//3 possible solutions:
+			//1 - make temporary helper function
+			useEffect(  () => {
+				const search = async = () => {
+					await axios.get('...')	
+				};
+			}, [term]);
+			//2 - remove temporary var and wrap in () and call w/ () @ end:
+			useEffect(  () => {
+				(async = () => {
+					await axios.get('...')
+				})();
+			}, [term]);//defined function, then immediately invokes it
+			//3 - use normal promises
+			useEffect(() => {
+				axios.get('as;ljk')
+					.then((response) => {
+						console.log(response.data);
+					});
+			}, [term]);//least often used, but sometimes easiest
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Executing the Request from useEffect
+	//We're going w/ solution #1:
+		useEffect(() => {
+			const search = async () => {
+				await axios.get('https://en.wikipedia.org/w/api.php', {
+					params: {
+						action: 'query',
+						list: 'search',
+						origin: '*',
+						format: 'json',
+						srsearch: term
+					}
+				});
+			};
+			search();
+		}, [term]);
+		//search results are contained in query.search[i] --> contains title and snippet
