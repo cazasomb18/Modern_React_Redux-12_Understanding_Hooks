@@ -575,3 +575,203 @@ Make sure your H1 element displays the value of your counter piece of state!
 			search();
 		}, [term]);
 		//search results are contained in query.search[i] --> contains title and snippet
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Default Search Terms
+	//Set results, setResults in state to empty array:
+		const [results, setResults] = useState([]);
+	//Assign data obj to search axios search:
+		const { data } = await axios.get('https://en.wikipedia.org/w/api.php')
+	//In search(), after params object:
+		setResults(data);
+			//this renders comp everytime results changes
+
+	//Now when we console.log(results) we get an error:
+		//This b/c we can't provide wikipedia w/ a search term that is an empty string , 2 options:
+			//1 - enter a default search term
+			//2 - create ternary that will run if term !== '';
+
+		setResults(data.query.search); //returns only the search results
+
+	//Now we need to map that results array and built out a list!
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//LIST BUILDING!
+
+	//undernearth Search(){}: declare renderedResults.map var that builds a list:
+	const renderedResults = results.map((result) => {
+		return(
+			<div key={result.pageid} className="item">
+				<div className="content">
+					<div className="header">
+						{result.title}
+					</div>
+					{result.snippet}
+				</div>
+			</div>
+		); 
+	});
+
+	//And place after 'ui form' div in return statement:
+	<div className="ui celled list">{renderedResults}</div>
+		//There's an issue w/ html being rendered within this list!
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//XSS ATTACKS IN REACT
+	//to remove html in our list - take the html and render it out as HTML inside our app ( not text)
+		//benefit --> we can then apply some css to style this text
+			//whenever we display text w/ react, it's always plain text, in order to style it, we need
+			//however, we have a string that we have to TURN into JSX
+
+	//remove {result.snippet}, replace with:
+		<span dangerouslySetInnerHTML={{ __html: result.snippet }}></span>
+			//spans are gone, but now each one it a seperate html element
+			//anytime we take a string from a 3rd party, we could be introducing a security
+			//hold into our application called an XXS ATTACK
+				//CROSS-SITE-SCRIPTING ATTACK (accidentally pick up and render some html from and
+				//unknown source --> CAN BE VERY BAD!)
+					//--> untrusted source/person can run some javascript code in our account
+						//must be very confident that person providing this html is trusted
+			//You are opening yourself up to risk when you use this unless you are SURE the source is
+			//100% trust worthy.
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Linking to our Wikipedia Page
+	//This list looks great, but we want the user to click on a title and be taken to wikipedia article
+		//We will now add this functionality:
+
+	//GOAL: Show button on right hand side that user can click on to go to article
+
+	//1 - Add a button underneath 'item' div in Search.js:
+		<div className="right floated content">
+			<a className="ui button" }>GO</a>
+		</div>
+
+	//2 - Now formate the href to interpolate page.id
+		<a className="ui button" href={`https://en.wikipedia.org?curid=${result.pageid}`}>GO</a>
+		//We can now visit each of these articles on wikipedia.org
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Only Search with a Term
+
+	//Instead of running a search @ initial render w/ a default search term, let's formulate our code so
+	//that the search is only conducted when there's a search term:
+	//Replace search() with:
+		if (term) {
+			search();
+		};
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Throttling API requests
+	//Now, everytime our user enters a keystroke the wikipedia search is run
+
+	//GOAL: If user types, and then w/in 500ms there is no change we will run the search
+		//When user starts typing, timer is started:
+			//Timer starts again every time there is a key stroke
+				//Once timer hits 500ms, serach is conducted
+
+	//Putting together the code will be slightly confusing due to the syntax...
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//reminder on setTimeout
+	//Okay, let's set up a timer to run for 500ms, find if (term) and place inside setTimeout{}:
+	setTimeout(() => {
+		if (term) {
+			search();
+		}
+	}, 500);
+	//***Whenever we call setTimeout we get an id and we can use that identifier to cancel it with
+	//***clearTimeout(id)
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//useEffect's Cleanup Function
+	//THE ONLY THING useEffect CAN RETURN IS A FUNCTION:
+		//anytime user changes the input the cleanup function is invoked automatically,
+			//THEN first first block of code is executed
+
+		//The cleanup function will be the key to cancelling the previous timer
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Implementing a Delayed Request
+
+	//in Search.js, under timeoutId block, return clearTimeout(timeoutId):
+		return () => {
+			clearTimeout(timeoutId);
+		};
+		//Now we have the functionality we want by cancelling the original timeoutId;
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Searching on Initial Render
+	//GOAL: We want to detect whether or not this is the first time this comp is being rendered:
+		//If so - we will skip the timeout stuff and immediately run a search
+			//Every additional time useEffect is called, we'll set up time out and run cleanup func
+
+		//To do this, underneath setResults(data.query.search), in Search.js, add ternary statement:
+			if (term && !results.length) {
+				search()
+			} else {
+				const timeoutId = setTimeout(() => {
+					if (term) {
+						search();
+					}
+				}, 1000);
+
+				return () => {
+					clearTimeout(timeoutId);
+				};
+
+			};
+		//if term and no results, run search, else set timeoutId, and search everytime there's
+		//a 500ms gap in the change in term
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Edge Case when Clearing Out Input Form
+/*In the upcoming lecture, we will be adding a second useEffect to handle debouncing. In order to resolve 
+the case where a user will clear out the input-form, we need to add a conditional (similar to the issue 
+described in this earlier lecture):*/
+/*  useEffect(() => {
+    const search = async () => {
+      const { data } = await axios.get('https://en.wikipedia.org/w/api.php', {
+        params: {
+          action: 'query',
+          list: 'search',
+          origin: '*',
+          format: 'json',
+          srsearch: debouncedTerm,
+        },
+      });
+ 
+      setResults(data.query.search);
+    };
+    if (debouncedTerm) {
+      search();
+    }
+  }, [debouncedTerm]);*/
+// ^^^ completed ^^^
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
