@@ -775,3 +775,421 @@ described in this earlier lecture):*/
 
 
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Dropdown Architecture
+
+	//GOAL: get more practice with useState, useEffect and introduce a new hook - useRef.
+
+	//purpose: show some list of options, user can click on them, menu will open up with select color:
+		// red, green blue
+
+		//We want to make this reusable --> need to be able to customize the options that are provided in the
+		//dropdown.
+
+	//APP will show Dropdown, has list of options
+		//--> will be provided as props to the dropdown component
+			//--> Options: array of objects [{},{}]
+				//--> each {} ==> label: '', value: ''
+
+				//** why {label: 'Red', value: 'red'}?
+					//When we show text to the user, we may want to say something different from 'Red',
+					//maybe we want to display 'The Color Red' to the user.
+					// label: is what gets displayed to the user
+					//value: is how we interpret what the use selects
+						//value: 'red' , is easier for us to understand what the user selected rather than
+						//parsing the label (don't quite understand what he means)
+
+	//In addition to passing down props from <App/> we are also going create some state in the <Dropdown/>
+		//this.state.selection (from App) - will record what the currently selected option is:
+			//will provide this down from App > Dropdown to tell it what user currently selected
+				//the relationship between the component and the input field
+					//we have some value specified to the input to tell it what the current value is
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Scaffolding the Dropdown
+
+	//in src/components dir: create Dropdown.js, set as functional comp to return <H1>Dropdorn<div/>
+	//import Dropdown @ App level in replace <Search/> with <Dropdown/>
+
+	//Now, @ <App/> create options array and import as prop options to <Dropdown/>:
+		<Dropdown options={options}/>
+			//--> goal: make sure we can make use of the dropdown comp in different places in out app and
+			//show a different list of options to the user
+				//that's why we're defining this as props that we'll pass down.
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//A lot of JSX
+
+	// Extract vars from options props using.map function
+	const renderedOptions = options.map((option) => {
+		return (
+			<div key={option.value} className="item">
+		{/*extracting value / label to get key and title*/}
+				{option.label}
+			</div>
+		);
+	});
+
+	return (
+		 <div className="ui form">
+		 	<div className="field">
+		 		<label className="label">Select a Color</label>
+		 	{/*for now hardcoding in these values, eventually want to be change to whatever we need*/}
+		 		<div className="ui selection dropdown visible active">
+		 			<i className="dropdown icon"></i>
+		 		{/*semantic ui just uses these <i></i> as a convention, does not mean <icon/>*/}
+		 			<div className="text">Select Color</div>
+		 			<div className="menu visible transition">
+		 				{renderedOptions}
+		 			</div>
+		 		</div>
+		 	</div>
+		 </div>
+		);
+	};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Selection State:
+
+	//this.state.selection: state to keep track of current selection
+		//we also need a setter to setSelection, will also pass this to dropdown
+
+	//Initialize state and set at first value in options []:
+		const [selected, setSelected] = useState(options[0]);
+
+	//Pass selected into selected prop in dropdown and set up to receive prop onSelectedChange:
+		<Dropdown selected={selected} onSelectedChange={setSelected} options={options} />
+
+	//In Dropdown.js, also set up comp to receive these props:
+		const Dropdown = ({ options, selected, onSelectedChange }) => {};
+
+	//Now we'll set up the label to print out the current selection:
+		<div className="text">{selected.label}</div>
+			//now 'The Color Red' is printed here since we initialized that state the default selection
+
+	//Now, we need to make sure that whenver a user clicks on another item, that we select the user, 
+	//selection instead, will call onselected change callback taht will update this.state.selected in <App/>:
+		//add onClick prop to 'item' div in Dropdown.js, passing option {} from renderedOptions:
+			const Dropdown = ({ options, selected, onSelectedChange }) => {
+				const renderedOptions = options.map((option) => {
+					return (
+						<div 
+							key={option.value} 
+							className="item" 
+							onClick={() => onSelectedChange(option)}
+						>
+							{option.label}
+						</div>
+					);
+				});
+			};
+				//Whenver we click on a different options div:
+					//we're calling onSelectedChange()
+						//which is the setSelected() that will update our selected piece of state
+						//APP RERENDERS , passes in newly selected option
+							//App rerenders again
+								//Now w/ shown newly selected property inside that containment div
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Filtering the Options List:
+	//Let's make sure that whatever it the currently selected option doesn't show up as an additional
+	//option in the dropdown list:
+		//Dropdown.js, renderedOptions.map() statement, see if currently selectedOption is the option that we're
+		//iterating over:
+			if (option.value === selected.value) {
+				return null;
+			}
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Hiding and Showing the Options List:
+	//Make sure we can open and close the <Dropdown/>, can toggle open, and list will close when option
+	//selected
+		//We could do this conditionally - if (active && !option){keep open}
+			//this would make our dropdown look strange, so closing the list isn't the solution
+
+		//Better way: apply or remove a list of css classes
+			//in Dropdown.js remove classes: "visible transition" and "visible active":
+				//this is how it's supposed to look closed
+					//--> we want to toggle to existence of these classes - how can we do this?
+						//Add new piece of state to comp to keep track or open or closed
+
+
+		//in Dropdown.js, 1st line of Dropdown = () => {}: initialize open, setOpen w/ useState(false):
+			const [open, setOpen] = useState(false);
+				//don't forget to import useState!
+
+		//Add onClick handler to 'ui selection dropdown' div, calling setOpen nad pass it the opposite 
+		//value of open and interpolate 'visible active' classes w/ string template and ternary to set
+		//classes or '':
+		 <div className={`ui selection dropdown ${open ? 'visible active': ''}`} onClick={()=>setOpen(!open)}>
+		 </div>
+
+		 //Do the same in 'menu' div w/ classes 'visible transition':
+		 <div className={`menu ${open ? 'visible transition' : ''}`}></div>
+		 	//now we have the dropdown funcitonality we want
+
+	//There is one more change we need to make, we want to be able to click outside of the the menu and have it
+	//close automatically --> we'll spend a decent amount of time implementing this in the next video...
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Err.. WHY IS THIS SO HARD?  
+	//Why is it so challenging to close the dropdown?
+	//We need to several concepts in HTML, the DOM and ReactJS in order to grasp this, understanding these
+	//concepts is CRITICAL:
+
+	//w the <Dropdown/> comp, we have a React comp, whenver we create a react comp we return some jsx,
+	//That JSX creates a number of elements on the screen and we can also optionally set up some event handlers
+	//by providing some props to those elements
+		//we've learned this a lot in this course
+
+	/*KEEP THING TO KEEP IN MIND, DROPDOWN COMP CAN ONLY USE THAT SYNTAX */onClick={() => setOpen(!open)}/* 
+	TO SET UP EVENT HANDLERS ON ELEMENTS THAT IT CREATES*/
+		//--> div.ui.form, div.ui.selection
+		//Issue: we're trying to click on some E that is not created by the Dropdown, and it has a hard time
+		//to receive events clicking anywhere else on the screen, and that's exactly what we want to do:
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Reminder on Event Bubbling - Basic topic around how browser and DOM works:
+	//when user clicks onClick <item.div> > Browser Clicks Event Object:
+		//event Object Describes what the user clicked 	
+			//--> where user's mouse is on screen, and what element user just clicked on
+			//Browser hands event object to React
+			//React does processing on the event
+				//React provides an event object to the onClick event handler:
+					//which is this:
+						onClick={()=> onSelectedChange(option)}
+
+				//Event does not stop, travels up to the parent element:
+					//<div className="ui menu"> 
+						//if element has clickEvent handler, it is invoked
+						//Event object then travels up to the next parent element
+							//In each step, browser checks to see if click event handler:
+								//authomatically invoked
+				//--> this process is called EVENT BUBBLING
+
+				//WE CAN SEE THIS BE LOOKING AT CURRENT BEHAVIOR OF OUR <DROPDOWN/>
+					//What happens when user clicks item?
+						//We only update the current selected item
+							//There nothing about closing the dropdown,
+							//But it's closed when we select something, why is that?
+								//--> event bubbling triggers parent element onClick event handlers
+								//and eventually reaches on that closes the dropdown
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Applying What We've Learned
+
+	//What We've Learned so Far:
+
+	//The Dropdown needs to detect a click event on ANY ELEMENT besides the one it created
+		//If user clicks anywhere outside Dropdown, we need to detect that click
+
+	//The Dropdown has a hard time setting up event handlers on elements that it does not create
+		//Not impossible but a little bit challenging
+	//Event bubbling is a thing
+		//It exists, if we click on something it will bubble up our DOM structure
+
+	//OUR SOLUTION:
+		//How our Dropdown set up an manual event listener set on teh body element,
+			//Any time user clicks on any element it will bubble up to the body
+
+	//What do we mean by 'manual event handler' ??
+		//In browser console: document.body.addEventListener('click', ()=> console.log('CLICK!!!'));
+			//Now anywhere we click outside the dropdown we see this console.log()
+				//(You learned this week one in GA SEI)
+
+	//NEXT TIME: How do we get the dropdown component to set up an event listener?
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Binding an Event Handler
+	//How do we get the dropdown component to set up an event listener?
+
+	//Set up a useEffect hook inside our our dropdown, and set up an event listener to listen to that body 
+	//element
+		//import useEffect to Dropdown.js
+		//call useEffect w/ [] as 2nd arg:
+		useEffect(() => {
+			document.body.addEventListener('click', () => {
+				console.log('CLICK!');
+			})
+		}, []);
+				//Now everytime we click we see that console.log
+
+		//Replace console.log w/ setOpen(false);
+			//this doens't work as we expect however...
+				//my issue, I cannot open the dropdown at all with this code, different from instructor's
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Why Stay Open?!
+	//To fix this problem we want to see what the onClick handlers are being called, to see this we will
+	//add a console.log to each onClick event handler:
+		//ORDER IS THIS:
+			//1 - BODY (only one wired up w/ addEventListener === ALWAYS FIRST)
+				//2 - ITEM
+					//3 - DROPDOWN
+
+			//1 - setOpen(false) called - in theory closes dropdown
+			//2 - click on Item - s
+			//3 - dropdown - setOpen(!open) === we're taking opposite value of open here, so what we're
+				//doing it we're taking the false value of open and flipping it to true
+					//it closes for a fraction of a second then reopens b/c of this value
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Which Element was Clicked?
+	//2 scenarios we need to worry about:
+		//1 - User clicks on an element that is created by Dropdown comp
+			//--> if user clicks on one of these elements, then we probably DON'T want the body 
+				//to open/close the dropdown
+
+		//2 - User clicks on any element BESIDES the ones created by the Dropdown
+			//--> If user clicks on any of these elements, we DO WANT THE BODY EVENT LISTENER TO CLOSE
+				//THE DROPDOWN
+
+	//SOLUTION: INSIDE THIS EVENT LISTENER WE WANT TO ADD CODE TO DECIDE WHETHER OR NOT TO CLOSE THE DROPDOWN
+	//BASED UPON WHICH ELEMENT WAS CLICKED:
+		//figure what element was clicked
+			//decide if that element was inside the dropdown
+
+	//GOAL: useRef to get ref to element inside dropdown to decide whether or not E clicked on was contained in
+	//div w/ classname 'ui form'
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+/*Important Update for React v17
+In the next lecture at about 2:32 in the video, an important fix is shown to resolve an issue caused by 
+the changes React v17 makes to events.
+
+Many students have been skipping or missing this fix, so I will share it here as well:*/
+if (ref.current.contains(event.target)) {
+
+/*should be:*/
+if (ref.current && ref.current.contains(event.target)) {
+
+/*Here is the full useEffect Hook code from the "Making Use of useRef" lecture:*/
+  useEffect(() => {
+    document.body.addEventListener('click', (event) => {
+      if (ref.current && ref.current.contains(event.target)) {
+        return;
+      }
+ 
+      setOpen(false);
+    });
+  }, []);
+ 
+/*Here is the full useEffect Hook code from the refactor in the "Body Event Listener Cleanup" lecture:*/
+  useEffect(() => {
+    const onBodyClick = (event) => {
+     if (ref.current && ref.current.contains(event.target)) {
+        return;
+      }
+ 
+      setOpen(false);
+    };
+ 
+    document.body.addEventListener('click', onBodyClick);
+ 
+    return () => {
+      document.body.removeEventListener('click', onBodyClick);
+    };
+  }, []);
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////
+  //Making use of useRef:
+
+
+ 	//Import useRef and declare as const var called ref:
+  		const ref = useRef();
+
+	//and add as ref to 'ui form' div in return statement:
+		<div ref={ref} className="ui form"></div>
+
+	//How when Dropdown is rendered we can get a reference to that div by making use of ref.current
+		//in document.body.addEventListner set up conditional to return early if ref contains event.target:
+		document.body.addEventListener('click', (event) => {
+			if (ref.current.contains(event.target)) {
+				return;
+			}
+			setOpen(false);
+		});//if option is contained in the dropdown, close the menu
+				//otherwise setOpen to false
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Body Event Listener Cleanup
+	//We're going to add code to export default statement to toggle visibility of <Dropdown/> entirely:
+		//In App.js, below selected, setSelected:
+			const [showDropdown, setShowDropdown] = useState(true); 
+			//initializing showDropdown with initial value of true means we show dropdown
+
+		//Add button w/ onClick prop and text toggle dropdown, call setShowDropdown w/ opposite of current
+		//value:
+			<button onClick={() => setShowDropdown(!showDropdown)=> }>Toggle Dropdown</button>
+
+		//Wrap Dropdown in {} and based on showDropdown conditionally render entire component:
+		{showDropdown ? 
+				<Dropdown 
+							selected={selected} 
+							onSelectedChange={setSelected} 
+							options={options} 
+				/> : null
+		}//if showDropdown(true) then render <Dropdown/> else render nothing
+
+
+		//Now, when we test this we get this error: TypeError: Cannot read property 'contains' of null
+		//Here's what's happening, in document.addEventListener{}:
+			if (ref.current.contains(event.target)) {
+				/*ref.current is being read as null, b/c we no longer have an element to refer to*/
+				return;
+			}
+
+			//This element below goes away - and there's no longer a ref:
+			<div ref={ref} className="ui form"></div>
+
+			//How do we fix this?
+				//Turn off manual event listener, will use cleanup function from useEffect:
+					//use it to NOT call the event listener:
+					useEffect(() => {
+						const onBodyClick = (event) => {
+							if (ref.current.contains(event.target)) {
+								return;
+							}
+							setOpen(false);
+						};
+						document.body.addEventListener('click', onBodyClick );
+						return () => {
+							document.body.removeEventListener('click', onBodyClick);
+							/*this removes the event listener and prevents it from being called*/
+						};
+					}, []);
