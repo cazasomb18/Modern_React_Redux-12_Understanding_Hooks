@@ -1193,3 +1193,44 @@ if (ref.current && ref.current.contains(event.target)) {
 							/*this removes the event listener and prevents it from being called*/
 						};
 					}, []);
+
+					
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//The translate Widget
+
+	//1 - User will enter in text
+	//2 - Select language
+	//3 - Translate the text
+	//4 - Render translation below on screen 
+
+	//We will create a few different components, none of this code will be inside <App/>
+		//Translate comp
+			//Will show instance of dropdown, that will allow user to select the language
+			//Will also show a convert component:
+				//Convert: takes in text, current language and does the translation
+					//We will not work about convert too much right now
+
+			//Options: list of different language that user can select
+				//an array of objects, each obj w/ label and value:
+				const options = [
+					{label: 'Afrikaans', value: 'af'};
+				];
+
+			//Will pass options down as a prop into <Dropdown/> so user can select one
+
+			//Will also pass down currentlySelectedLanguage and setLanguage as callback
+				//will be 100% same as what we did in <Dropdown/> in App.js
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Scaffolding the Translate Component
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Adding the Language Component
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Understanding the Convert Component
