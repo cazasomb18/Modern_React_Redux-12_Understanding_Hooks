@@ -1194,7 +1194,7 @@ if (ref.current && ref.current.contains(event.target)) {
 						};
 					}, []);
 
-					
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //The translate Widget
@@ -1234,3 +1234,283 @@ if (ref.current && ref.current.contains(event.target)) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //Understanding the Convert Component
+
+	//Convert component will receive two props: language (label and value {}) and text (user input)
+		//New language/text has appreared, we should convert it and show the output
+			//Make request the Google Translate API
+				//takes text and lang code, does translation
+					//returns resonse w/ translated text
+						//take translated text, use to update piece of state and render on screen
+							//{ ^^ useEffect ^^ }
+
+	//cloud.google.com/translate/docs > Reference > REST reference > Basic > translate:
+		//POST endpoint - https://google.com/translation.googleapis.com/language/translate/v2
+			//Query params we're going to provide: 
+				//q - actual text we want to translate
+				//target - what we'll translate our language into (value: 'af', 'ar' & 'hi')
+					//--> language support link: codes for all other languages
+				//key - valid api key (will be provided, normally need to pay for one)
+
+		//Response body, JSON:
+			{
+				"data": {
+					object(TranslateTextResponseList)
+				},
+			}
+
+		//We need to make a POST request w/ params q, target and key
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Google Translate API Key
+	/*This is the API key you should use for the Google Translate API. Copy paste this into the top 
+	of your ‘Translate.js’ file for right now. Of course, make sure you comment it out.
+
+		AIzaSyCHUCmpR7cT_yDFHC98CZJy2LTms-IwDlM
+
+	This API can only be used when your browser is at ‘http://localhost:3000’. If you try to make a 
+	request to the API from any other address, the request will fail.*/
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Building the Dropdown Component
+	//1 - in src/components directory create Convert.js, import useEffect, useState,
+	//2 - set up a functional component that receives destructured args language and text and return
+		//empty div.
+
+	//3 - We know we need to make a request anytime the text/language changes in any way, ideal way 
+	//of wiring that up is with useEffect:
+	const Convert = ({ language, text }) => {
+		useEffect(() => {
+			console.log('New language or text');
+		}, [language, text]);
+		return (
+			<div></div>
+		);
+	};
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	//Using the Google Translate API
+
+		//Install axios into our project and import at Convert.js
+
+		//Now we're going to manually make a request and look at the response body in our xhr req. log
+			//axios.post('https://translation.googleapis.com/language/translate/v2') (under useEffect() )
+
+			//whenever we make a post request the 2nd arg to axios will always be some info to send along
+			//in the body, documentation says we should provide these as query string parameters, even
+			//though we're making a request we're not going to send anything in the body (b/c w're providing
+			//as query string parameters):
+				axios.post('https://translation.googleapis.com/language/translate/v2', {}, {
+					params: {
+						q: text,
+						target: language.value,
+						key: 'api-key-from.env'
+					}
+				});
+
+					//1st {} === text body since we're sending nothing we leave it empty
+					//q: text we want to translate, coming from text prop coming into convert comp
+					//target: target lang, receiving from lang prop coming into convert comp, we want
+					//specifically the language code from the language object (language.value)
+
+		//Let's take a look at the response body in our browser console:
+			//data.translations[] ==> in [] would be our translated data as objects
+
+			//next we'll take our convert comp and show on screen...
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Displaying the translated text
+	//Now we need to take trans data, use it to update a piece of state and render the comp on screen
+		//So let's initialize translated and setTranslated w/ useState and an empty string:
+			const [translated, setTranslated] = useState('');
+
+	//Need access response to pull out translated text and use it to update a piece of state:
+		//REMEMBER: WE CANNOT DIRECTLY MAKE USE OF ASYNC AWAIT SYNTAX IN useEffect, so we're going to create
+		//a helper function to do this for us and call it w/ async await syntax (1st line doTranslation):
+			useEffect(() => {
+				const doTranslation = async () => {
+					const { data } = await axios.post('https://translation.googleapis.com/language/translate/v2', 
+						{}, 
+						{
+							params: {
+								q: text,
+								target: language.value,
+								key: 'api-key-from.env'
+							},
+						}
+					);
+				};
+				console.log('Change in text or language');
+			}, [language, text]);
+
+		//we're destructured out data from response, but inside of that there is another prop called data
+			const doTranslation = async () => {
+				const { data } = await axios.post('https://translation.googleapis.com/language/translate/v2', 
+					{}, 
+					{
+						params: {
+							q: text,
+							target: language.value,
+							key: 'api-key-from.env'
+						},
+					}
+				);
+				setTranslated(data.data.tarnslations[0].translatedText);
+					//translations is in this 2nd data {}
+			};
+
+		//Now after defining doTranslation we call it in useEffect:
+		useEffect(() => {
+			const doTranslation = async () => {
+				const { data } = await axios.post('https://translation.googleapis.com/language/translate/v2', 
+					{}, 
+					{
+						params: {
+							q: text,
+							target: language.value,
+							key: 'api-key-from.env'
+						},
+					}
+				);
+				setTranslated(data.data.translations[0].translatedText);
+			};
+			doTranslation();
+		}, [language, text]);
+
+		//And return the translation:
+			return (
+				<div>
+					<h1 className="ui header">{translated}</h1>
+				</div>
+			);
+
+		//And now we're successfully translating text on screen based on user input!
+			//However we have a familiar problem here - we're making an API request everytime there's a
+			//keystroke - since this is a paid we should limit the # of requests...
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Debouncing Translation Updates
+
+	//We want to set a 500 ms limit between keystrokes, compare term to original term and run search if !==
+		//This will work exactly the same way as it did with the wikisearch widget:
+
+		//2 use Effect functions:
+			//1st - will run whenver there's a change to the text state changes
+				//--> will set up 500ms timer between key strokes
+					//--> will cancel timer until user has typed and paused for 500ms
+						//--> then will update debouncedText
+			//2nd - will run whenever there's a change to the debouncedText state changes
+				//Will make request to google api w/ debouncedText state as thing wanting to translate
+
+	//in Convert.js initialize debouncedText, setDebouncedText with useState passing in text parameter:
+		const [debouncedText, setDebouncedText] = useState(text);
+
+	//useEffect 1 - set up times to update debouncedText in 500ms and return cleanup function that cancels
+	//timer if user makes update to text prop:
+	useEffect (() => {
+		const timerId = setTimeout(() => {
+			setDebouncedText(text);
+		}, 500);
+		return () => {
+			clearTimeout(timerId);
+		}
+	}, [text]); 
+
+	//useEffect 2 - make sure api makes a request using debounced piece of state, in Convert.js, in previous
+	//useEffect, set q param to debouncedText:
+	params: {
+		q: debouncedText,
+		target: language.value,
+		key: 'api-key-from.env'
+	},
+
+	//Make sure we only make that request when debouncedText changes: in dependency array of 2nd useEffect:
+	}, [language, debouncedText]);
+		//At this point all of our widgets are complete, now we'll focus on the navigation bar at the top:
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//Practicing with useState and UseEffect - coding exercise
+
+	//1 - Make use of axios to make GET request to url, which will return an array of objects
+	//2 - Use array of objects to update users' piece of state (set up for you)
+	//3 - worry about useEffect and adding code to make a request and use it to update user's piece of state
+
+	/*Fetching data from a useEffect hook and using it to update some piece of state is a pattern that you'll
+	use many times in your React career.  Let's practice it!
+
+	Goals:
+		1. In the useEffect function, use axios to make a GET request to the url specified by the url var.
+		This request will return an array of user objects*
+		2. Take the response from the request and use it to update the users piece of state with the setUsers 
+		function
+
+	Hints:
+		1. Remember, you cannot use the async/await syntax directly on the function that it passed to useEffect.
+		If you want to use async/await, then define a new function inside of useEffect, mark it as async and call
+		it manually.
+		2. Make the request to fetch the list of users with axios.get(URL);
+		3. Remember that when you make a request with axios, you get a 'response' object back. The actdual data
+		that was sent back to you is available on the data property ot that object.*/
+
+//App.js
+import React from 'react';
+import {axios} from './axios';
+const { useState, useEffect } = React;
+
+const URL = 'https://jsonplaceholder.typicode.com/users';
+
+const App = () => {
+    const [users, setUsers] = useState([]);
+    
+    useEffect(() => {
+        // Add code here to fetch some users with axios and the URL variable
+        // then update the 'users' piece of state
+        const getUsers = async () => {
+            const { data } = await axios.get(URL);
+            setUsers(data)
+        }; 
+        getUsers();
+    }, [users]);
+    //// ^^^ YOUR SOLUTION IS getUsers() ABOVE ^^^^
+    
+    const renderedUsers = users.map((user) => {
+        return <li key={user.id}>{user.name}</li>;
+    });
+    
+    return (
+        <ul>
+            {renderedUsers}
+        </ul>
+    );
+}
+
+export default App;
+
+//axios.js - You do not need to make any changes to this file
+const axios = {
+    get(url) {
+        return fetch(url)
+            .then(res => res.json())
+            .then(d => ({ data: d }));
+    }
+}
+
+export { axios };
+	//you got it on your own after a reminder from the instructor...
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//Coding Exercise 9 Solution
+	//5 SECONDS OF THIS VIDEO REMINDED YOU OF A CHANGE YOU NEEDED TO MAKE THAT SOLVED THE EXERCISE
+		//Section 12 complete
